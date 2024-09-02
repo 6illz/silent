@@ -1,0 +1,162 @@
+repeat task.wait() until game:IsLoaded()
+
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerCharacter = player.Character
+local playerCamera = Workspace.CurrentCamera
+
+local TargetedPlayer = nil
+local TargetedPlayerCharacter = nil
+local TargetedPlayerAimPart = nil
+
+local Hit_Success = false
+
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Visible = Silent.Settings.Circle.Visible
+FOVCircle.Color = Silent.Settings.Circle.Color
+FOVCircle.Transparency = Silent.Settings.Circle.Transparency
+FOVCircle.Thickness = Silent.Settings.Circle.Thickness
+FOVCircle.NumSides = Silent.Settings.Circle.NumSides
+FOVCircle.Radius = playerCamera.ViewportSize.X / Silent.Settings.Circle.Radius
+FOVCircle.Filled = Silent.Settings.Circle.Filled
+FOVCircle.Position = Vector2.new(playerCamera.ViewportSize.X / 2, playerCamera.ViewportSize.Y / 2)
+
+player.CharacterAdded:Connect(function(NewCharacter)
+    playerCharacter = NewCharacter
+end)
+
+local function GetClosestPlayer()
+    local ClosestPlayer = nil
+    local ShortestDistance = math.huge
+
+    for _, Player in ipairs(Players:GetPlayers()) do
+        if Player ~= player and Player.Character then
+            for _, PlayerPart in ipairs(Player.Character:GetChildren()) do
+                if PlayerPart:IsA("BasePart") and PlayerPart.Transparency ~= 1 then
+                    local PlayerScreenPosition = playerCamera:WorldToViewportPoint(PlayerPart.Position)
+                    local PlayerDirection = (PlayerPart.Position - playerCamera.CFrame.Position).unit
+                    local DotProduct = playerCamera.CFrame.LookVector:Dot(PlayerDirection)
+
+                    if DotProduct > 0 then
+local MagnitudeDistance = (Vector2.new(PlayerScreenPosition.X, PlayerScreenPosition.Y) - FOVCircle.Position).Magnitude
+                        if MagnitudeDistance < ShortestDistance and MagnitudeDistance <= FOVCircle.Radius then
+                            ClosestPlayer = Player
+                            ShortestDistance = MagnitudeDistance
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return ClosestPlayer
+end
+
+RunService.RenderStepped:Connect(function(deltaTime)
+    TargetedPlayer = GetClosestPlayer()
+    
+    if TargetedPlayer and TargetedPlayer.Character and TargetedPlayer.Character:WaitForChild(Silent.Settings.AimPart) then
+        TargetedPlayerCharacter = TargetedPlayer.Character
+        TargetedPlayerAimPart = TargetedPlayerCharacter:WaitForChild(Silent.Settings.AimPart)
+    end
+
+    local hue = tick() % 5 / 5
+    FOVCircle.Color = Color3.fromHSV(hue, 1, 1)
+end)
+
+local RawMetaTable = getrawmetatable(game)
+local OldRawMetaTable = RawMetaTable.__namecall
+
+setreadonly(RawMetaTable, false)
+
+math.randomseed(os.time())
+
+local function GetEvent()
+    for _, v in pairs(game.ReplicatedStorage:GetChildren()) do
+        if v.Name == "MainEvent" or v.Name == "Bullets" or v.Name == ".gg/untitledhood" or v.Name == "Remote" or v.Name == "MAINEVENT" or v.Name == ".gg/flamehood" then
+            return v
+        end
+    end
+end
+
+local function GetArgs()
+    local PlaceId = game.PlaceId
+
+    if PlaceId == 2788229376 or PlaceId == 4106313503 or PlaceId == 11143225577 or PlaceId == 17319408836 or PlaceId == 18110728826 then
+        return "UpdateMousePosI"
+    elseif PlaceId == 5602055394 or PlaceId == 7951883376 then
+        return "MousePos"
+elseif PlaceId == 10100958808 or PlaceId == 12645617354 or PlaceId == 14171242539 or PlaceId == 14412436145 or PlaceId == 14412355918 or PlaceId == 14413720089 or PlaceId == 17403265390 or PlaceId == 17403166075 or PlaceId == 17403262882 or PlaceId == 15186202290 or PlaceId == 15763494605 then
+        return "MOUSE"
+    elseif PlaceId == 9825515356 then
+        return "MousePosUpdate"
+    elseif PlaceId == 15166543806 then
+        return "MoonUpdateMousePos"
+    elseif PlaceId == 16033173781 or PlaceId == 7213786345 then
+        return "UpdateMousePosI"
+    else
+        return "UpdateMousePos"
+    end
+end
+
+local mainEvent = GetEvent()
+
+RawMetaTable.__namecall = newcclosure(function(...)
+    local RemoteArguments = {...}
+    local eventName = GetArgs()
+
+    if Silent.Settings.Toggled and getnamecallmethod() == "FireServer" and mainEvent and TargetedPlayer and TargetedPlayerCharacter and TargetedPlayerAimPart then
+        local VelocityPrediction = Vector3.new(
+            TargetedPlayerAimPart.Velocity.X * Silent.Settings.Prediction.Horizontal,
+            TargetedPlayerAimPart.Velocity.Y * Silent.Settings.Prediction.Vertical,
+            TargetedPlayerAimPart.Velocity.Z * Silent.Settings.Prediction.Horizontal
+        )
+
+        Hit_Success = math.random(100) <= Silent.Settings.HitChance
+
+        if (RemoteArguments[2] == eventName and type(RemoteArguments[3]) ~= "table") then
+            if Hit_Success then
+                if Silent.Settings.Prediction.Toggled then
+                    RemoteArguments[3] = TargetedPlayerAimPart.Position + VelocityPrediction
+                else
+                    RemoteArguments[3] = TargetedPlayerAimPart.Position
+                end
+            end
+        elseif (RemoteArguments[2] == eventName and type(RemoteArguments[3]) == "table" and RemoteArguments[3]["MousePos"] and RemoteArguments[3]["Camera"] and not RemoteArguments[3][1] and not RemoteArguments[3][2]) then
+            if Hit_Success then
+if Silent.Settings.Prediction.Toggled then
+                    RemoteArguments[3] = {
+                        ["MousePos"] = TargetedPlayerAimPart.Position + VelocityPrediction,
+                        ["Camera"] = TargetedPlayerAimPart.Position + VelocityPrediction
+                    }
+                else
+                    RemoteArguments[3] = {
+                        ["MousePos"] = TargetedPlayerAimPart.Position,
+                        ["Camera"] = TargetedPlayerAimPart.Position
+                    }
+                end
+            end
+        elseif (RemoteArguments[2] == eventName and type(RemoteArguments[3]) == "table" and not RemoteArguments[3]["MousePos"] and not RemoteArguments[3]["Camera"] and RemoteArguments[3][1] and RemoteArguments[3][2]) then
+            if Hit_Success then
+                if Silent.Settings.Prediction.Toggled then
+                    RemoteArguments[3] = {
+                        [1] = TargetedPlayerAimPart.Position + VelocityPrediction,
+                        [2] = TargetedPlayerAimPart.Position + VelocityPrediction
+                    }
+                else
+                    RemoteArguments[3] = {
+                        [1] = TargetedPlayerAimPart.Position,
+                        [2] = TargetedPlayerAimPart.Position
+                    }
+                end
+            end
+        end
+        return OldRawMetaTable(unpack(RemoteArguments))
+    end
+    return OldRawMetaTable(...)
+end)
